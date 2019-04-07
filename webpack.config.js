@@ -1,4 +1,4 @@
-// webpack.config.js
+const path = require('path');
 
 module.exports = {
     entry: "./src/index.ts",
@@ -7,14 +7,15 @@ module.exports = {
     },
     resolve: {
         // Add '.ts' and '.tsx' as a resolvable extension.
-        extensions: [".ts"]
+        extensions: [".ts", '.js'],
+        modules: ["node_modules"]
     },
     module: {
         rules: [
             // all files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'
             {
                 test: /\.tsx?$/,
-                exclude: /node_modules/,
+                //exclude: /node_modules/,
                 loader: "ts-loader"
             }
         ]

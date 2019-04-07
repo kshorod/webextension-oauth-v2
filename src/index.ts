@@ -1,5 +1,6 @@
-import { IdentitySignInStrategy } from './background';
+import { IdentitySignInStrategy } from './core';
+import { getTypedBrowserApi } from './browser-api';
 
-console.log('test');
+const strategy = new IdentitySignInStrategy(getTypedBrowserApi());
 
-let something = new IdentitySignInStrategy();
+console.log(strategy);

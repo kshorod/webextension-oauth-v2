@@ -5,8 +5,8 @@ if (window.chrome) {
     });
 }
 
-if (window.browser) {
-    browser.browserAction.onClicked.addListener(function () {
-        chrome.tabs.create({ url: browser.runtime.getURL("index.html") });
-    });
-}
+// if (window.browser) {
+//     browser.browserAction.onClicked.addListener(function () {
+//         chrome.tabs.create({ url: browser.runtime.getURL("index.html") });
+//     });
+// }
