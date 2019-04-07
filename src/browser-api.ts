@@ -1,4 +1,4 @@
-import { IBrowserApi } from './types';
+import { IBrowserApi } from "./types";
 
 declare const browser: any;
 declare const chrome: any;
@@ -6,7 +6,7 @@ declare const chrome: any;
 function chromeApiFix<T>(func: (callback: (result: T) => void) => void) {
     return new Promise((resolve, reject) => {
         func(result => {
-            if (typeof (chrome.runtime.lastError) !== 'undefined') {
+            if (typeof (chrome.runtime.lastError) !== "undefined") {
                 reject(chrome.runtime.lastError);
                 return;
             }

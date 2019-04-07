@@ -27,7 +27,7 @@ class FakeBrowserApiIdentity implements IBrowserApiIdentity {
             }, 10));
         } else {
             return new Promise((resolve, reject) => setTimeout(() => {
-                reject(`${this.redirectUrl}#error=error_value`);
+                resolve(`${this.redirectUrl}#error=error_value`);
             }, 10));
         }
 
@@ -89,16 +89,16 @@ describe('IdentitySignInStrategy', () => {
 
     it('returnsDataOnSuccess', async () => {
         let strategy = new IdentitySignInStrategy(createBrowserApi());
-        let result = await strategy.initLogIn('https://fake.log.in', true);
-        expect(result).to.be.ok;
-        expect(result.access_token).to.be.equal('access_token_value');
+        let result = await strategy.launchSilentAuthFlow('https://fake.log.in');
+        expect(result.response).to.be.ok;
+        expect(result.response.access_token).to.be.equal('access_token_value');
     });
 
     it('returnsErrorOnFailure', async () => {
         let strategy = new IdentitySignInStrategy(createErrorBrowserApi());
-        let result = await strategy.initLogIn('https://fake.log.in', true);
+        let result = await strategy.launchSilentAuthFlow('https://fake.log.in');
         expect(result).to.be.ok;
-        expect(result.error).to.be.equal('error_value');
+        expect(result.response.error).to.be.equal('error_value');
     });
 
     it('eventFiredOnSuccess', async () => {
@@ -107,7 +107,7 @@ describe('IdentitySignInStrategy', () => {
             response = message;
         };
         let strategy = new IdentitySignInStrategy(browserApi({ failAuth: false, messageCallback: callback }));
-        let result = await strategy.initLogIn('https://fake.log.in', true);
+        let result = await strategy.launchSilentAuthFlow('https://fake.log.in');
 
         return new Promise(resolve => setTimeout(() => {
             expect(response).to.be.ok;

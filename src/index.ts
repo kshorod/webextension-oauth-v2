@@ -1,6 +1,12 @@
-import { IdentitySignInStrategy } from './core';
-import { getTypedBrowserApi } from './browser-api';
+import { getTypedBrowserApi } from "./browser-api";
+import { DefaultAuthEventEmitter, IdentitySignInStrategy, MSAADAuthProvider, OAuthService, WebExtensionAuthStorage } from "./core";
 
-const strategy = new IdentitySignInStrategy(getTypedBrowserApi());
+const browserApi = getTypedBrowserApi();
+const strategy = new IdentitySignInStrategy(browserApi);
+const provider = new MSAADAuthProvider({ baseUrl: "https://login.microsoftonline.com" });
+const storage = new WebExtensionAuthStorage(browserApi);
+const emitter = new DefaultAuthEventEmitter(browserApi);
 
-console.log(strategy);
+const service = new OAuthService(strategy, provider, storage, emitter);
+
+console.log(service);

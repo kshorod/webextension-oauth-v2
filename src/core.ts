@@ -1,35 +1,96 @@
-import { IBrowserApi } from './types';
+import { IBrowserApi } from "./types";
 
-export class IdentitySignInStrategy {
+export interface IAuthFlowResult {
+    response: any;
+}
+
+export interface IOAuthResult {
+    accessToken: string;
+    idToken: string;
+    expiration: Date;
+    success: boolean;
+    error: string | undefined;
+    state: number;
+}
+
+export interface IAuthStorage {
+    storeToken(response: IOAuthResult): Promise<void>;
+
+}
+
+export class WebExtensionAuthStorage implements IAuthStorage {
     constructor(private browserApi: IBrowserApi) {
     }
 
-    async initLogIn(url: string, interactive: boolean) {
-        const redirectUrl = await this.browserApi.identity.launchWebAuthFlow({ url, interactive });
+    public async storeToken(response: any): Promise<void> {
+        await this.browserApi.storage.local.set({ token: response });
+    }
+
+}
+
+export interface IAuthEventEmitter {
+    logInSuccess(): Promise<void>;
+}
+
+// tslint:disable-next-line: max-classes-per-file
+export class DefaultAuthEventEmitter implements IAuthEventEmitter {
+    constructor(private browserApi: IBrowserApi) {
+    }
+    public async logInSuccess(): Promise<void> {
+        await this.browserApi.runtime.sendMessage("AUTH_SUCCESS");
+    }
+
+}
+
+export interface IAuthProvider {
+    createRegularLogInUrl(redirectUrl: string, state: number): string;
+    createSilentLogInUrl(redirectUrl: string, state: number): string;
+    translateResult(result: IAuthFlowResult): IOAuthResult;
+}
+
+// tslint:disable-next-line: max-classes-per-file
+export class MSAADAuthProvider implements IAuthProvider {
+
+    constructor(private options: { baseUrl: string }) { }
+
+    public translateResult(result: IAuthFlowResult): IOAuthResult {
+        return {
+            ...result.response,
+        };
+    }
+    public createRegularLogInUrl(redirectUrl: string, state: number): string {
+        throw new Error("Method not implemented.");
+    }
+    public createSilentLogInUrl(redirectUrl: string, state: number): string {
+        const { baseUrl } = this.options;
+        return `${baseUrl}?redirectUrl=${redirectUrl}&state=${state}&prompt=none`;
+    }
+
+
+}
+
+export interface ISignInStrategy {
+    launchSilentAuthFlow(url: string): Promise<IAuthFlowResult>;
+    launchVisibleAuthFlow(): Promise<IAuthFlowResult>;
+    getRedirectUrl(): string;
+}
+
+// tslint:disable-next-line: max-classes-per-file
+export class IdentitySignInStrategy implements ISignInStrategy {
+
+    constructor(private browserApi: IBrowserApi) {
+    }
+
+    public async launchSilentAuthFlow(url: string): Promise<IAuthFlowResult> {
+        const redirectUrl = await this.browserApi.identity.launchWebAuthFlow({ url, interactive: false });
         const responseParams = extractHashParametersFromUrl(redirectUrl);
-
-        if (responseParams.error) {
-            throw new Error('WebAuth error "' + responseParams.error + '": ' + responseParams.error_description);
-        } else {
-            // const state = await statePromise;
-            // if (responseParams.state !== state) {
-            //     throw new Error('WebAuth error "state_error": response state mismatch')
-            // }
-            // check state
-
-            let expires_in: number = parseInt(responseParams.expires_in, 10);
-            expires_in = isNaN(expires_in) ? 0 : expires_in;
-
-            const tokenParams = {
-                ...responseParams,
-                expires_in,
-                expires_at: Date.now() + expires_in * 1000,
-            };
-
-            this.browserApi.runtime.sendMessage("AUTH_SUCCESS");
-
-            return tokenParams;
-        }
+        return { response: responseParams };
+    }
+    public launchVisibleAuthFlow(): Promise<IAuthFlowResult> {
+        throw new Error("Method not implemented.");
+    }
+    public getRedirectUrl(): string {
+        return this.browserApi.identity.getRedirectUrl();
     }
 }
 
@@ -39,6 +100,37 @@ class WebNavigationSignInStrategy {
 
 class LogInServerSignInStrategy {
 
+}
+
+// tslint:disable-next-line: max-classes-per-file
+export class OAuthService {
+    constructor(private strategy: ISignInStrategy, private provider: IAuthProvider, private storage: IAuthStorage, private emitter: IAuthEventEmitter) {
+    }
+
+    public async LogInIntelligent() {
+        const state = this.random();
+        const url = this.provider.createSilentLogInUrl(this.strategy.getRedirectUrl(), state);
+        const silentFlowResult = await this.strategy.launchSilentAuthFlow(url);
+        const silentResult = this.provider.translateResult(silentFlowResult);
+        if (!silentResult.success) {
+            // fallback
+            return this.LogIn();
+        }
+        if (silentResult.state !== state) {
+            throw new Error("State mismatch");
+        }
+
+        await this.storage.storeToken(silentResult);
+        await this.emitter.logInSuccess();
+    }
+
+    public async LogIn() {
+        const regularResult = await this.strategy.launchVisibleAuthFlow();
+    }
+
+    private random(): number {
+        return Math.floor((Math.random() * 900000) + 100000);
+    }
 }
 
 
@@ -68,18 +160,13 @@ class LogInServerSignInStrategy {
 // }
 
 function extractHashParametersFromUrl(url: string): any {
-    const hash = url.split('#')[1];
-    let data: { [key: string]: any } = {};
-    hash.split('&').forEach((item) => {
-        let parts = item.split('=');
+    const hash = url.split("#")[1];
+    const data: { [key: string]: any } = {};
+    hash.split("&").forEach((item) => {
+        const parts = item.split("=");
         data[parts[0]] = parts[1];
     });
     return data;
-    // return hash.split('&').reduce((result, item) => {
-    //     let parts = item.split('=');
-    //     result[parts[0]] = parts[1];
-    //     return result;
-    // }, {});
 }
 
 // browserApi.webNavigation.onErrorOccurred.addListener(function (details) {
