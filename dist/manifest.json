@@ -1,0 +1,35 @@
+{
+    "manifest_version": 2,
+    "name": "Oauth webextension v2",
+    "short_name": "oauthv2",
+    "description": "desc",
+    "version": "0.0.1",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "addon@example.com",
+            "strict_min_version": "48.0"
+        }
+    },
+    "icons": {
+        "48": "button/logo.jpg",
+        "96": "button/logo.jpg"
+    },
+    "author": "kshorod",
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+    "browser_action": {
+        "default_title": "Test It",
+        "default_icon": {
+            "19": "button/logo.jpg",
+            "38": "button/logo.jpg"
+        }
+    },
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "permissions": [
+        "identity",
+        "storage"
+    ]
+}
